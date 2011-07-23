@@ -7,8 +7,7 @@
 #define ACCESS_CODE "12345"
 
 void setup() {                
-  // initialize pin 13 as digital output to control the Latch Unlock
-  // Pin 13 has an LED connected to it on-board to see when the latch is triggering.
+  // initialize pin 12 as digital output to control the Latch Unlock
   pinMode(LATCH_UNLOCK_PIN, OUTPUT);
   
   // start serial port at 115200 bps.
