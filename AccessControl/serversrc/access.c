@@ -32,7 +32,7 @@ char *readSerial()
         {
                 memset(buffer,0,255);
                 res = read(door,buffer,255);
-        } while (buffer[0]==':' || res < 5);
+        } while (buffer[0]==':' || res < 5); /*silly hack to get around read being stupid - Jeremy*/
 
         buffer[res-1] = 0;
 
@@ -64,7 +64,12 @@ void daemonize()
         signal(SIGTTIN,SIG_IGN);
 }
 
-void log_access(char *message)
+/* this could definitely be set up better... ideally i'd like
+ * to see the access logging going to a separate file than any
+ * of the other log messages just for ease of parsing into a db
+ * - Jeremy
+ */
+void log_access(char *message) 
 {
         FILE *logfile;
         time_t ltime;
@@ -103,12 +108,14 @@ int openDoor(int code)
                         if(x<0)
                         {
                                 log_access("GOOD CODE, WRITE FAIL\n");
+                                fclose(whitelist);
                                 return 1;
                         }
                         else
                         {
 
                                 log_access("SUCCESS\n");
+                                fclose(whitelist);
                                 return 0;
                         }
                 }
@@ -121,12 +128,13 @@ int openDoor(int code)
         else
                 log_access("INVALID CODE\n");
 
-//      serialMsg = readSerial();
+        fclose(whitelist);
 
         return 1;
 }
 
-void initializePermissions()
+/*this may be completely unnecessary now that this is running as a daemon - Jeremy*/
+void initializePermissions() 
 {
         int dm = strtol(DOOR_MODE,0,8);
 
@@ -142,7 +150,6 @@ int main()
         struct input_event ev;
         struct termios options;
         int x;
-        int rd,size,value = sizeof(struct input_event);
 
         initializePermissions();
 
@@ -156,6 +163,10 @@ int main()
                 exit(1);
         }
         sleep(3);
+
+        /* set serial options, not sure what some of this does
+         * I just copied it from somewhere -Jeremy
+         */
 
         tcgetattr(door,&options);
         bzero(&options,sizeof(options));
@@ -191,29 +202,8 @@ int main()
                 code = readSerial();
 
                 if(openDoor(atoi(code))==0)
-                        sleep(4);
+                        sleep(4); /*sleep for 4 seconds on successful code, not really necessary*/
                 memset(code,0,MAX_CODE_LEN);
-
-                //comment this out when switching to reader
-                /*rd = read(keyboard,&ev,sizeof(struct input_event));
-
-                if(ev.type == 1)
-                {
-                        if(ev.code == 28 && ev.value == 1)
-                        {
-                                if(openDoor(atoi(code)) == 0)
-                                        sleep(3);
-                                memset(code,0,MAX_CODE_LEN);
-                        }
-                        else
-                        {
-                                if(ev.code>=71 && ev.code<=82 && ev.value==1)
-                                {
-                                        if(strlen(code)<MAX_CODE_LEN)
-                                                code[strlen(code)] = keycodeToChar(ev.code);
-                                }
-                        }
-                }*/
         }
 
         return 0;
