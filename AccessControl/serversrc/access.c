@@ -12,11 +12,11 @@
 #include <time.h>
 #include <string.h>
 
-#define MAX_CODE_LEN 15
-#define WHITELIST_FILE "/home/kaldonis/accesscontrol/whitelist.txt"
+#define MAX_CODE_LEN 15 /*completely arbitrary*/
+#define WHITELIST_FILE "/home/kaldonis/accesscontrol/whitelist.txt" /*terrible location for this file*/
 
-#define DOOR_DEVICE "/dev/ttyACM0"
-#define DOOR_MODE "0666"
+#define DOOR_DEVICE "/dev/ttyACM0" /*this will need to be USB0 if we switch back to seeeduino*/
+#define DOOR_MODE "0666" /*can probably be tighter than this, only needs to be read and written to by daemon*/
 
 #define LOG_FILE "/var/log/access.log"
 
