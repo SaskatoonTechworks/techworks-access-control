@@ -203,7 +203,7 @@ int main()
 
                 if(openDoor(atoi(code))==0)
                         sleep(4); /*sleep for 4 seconds on successful code, not really necessary*/
-                memset(code,0,MAX_CODE_LEN);
+                free(code);
         }
 
         return 0;
