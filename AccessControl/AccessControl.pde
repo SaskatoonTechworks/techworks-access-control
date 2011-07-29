@@ -135,6 +135,7 @@ void waitForWiegandAccessCode(char accessCode[])
   Serial.println(codeLow, HEX);
   
   ultoa(codeLow, accessCode, 10);
+  //sprintf(accessCode, "%08X%08X", codeHigh, codeLow);
   
   reader1 = 0;
   reader1Count = 0;
