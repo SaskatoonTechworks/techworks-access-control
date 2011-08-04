@@ -84,11 +84,11 @@ void log_access(char *message)
         fclose(logfile);
 }
 
-int openDoor(int code)
+int openDoor(char* code)
 {
         int x;
         FILE *whitelist;
-        int validCode;
+        char validCode[64];
         char* serialMsg;
 
         //printf("%d\n",code);
@@ -99,10 +99,10 @@ int openDoor(int code)
                 return 1;
         }
 
-        while(fscanf(whitelist,"%d",&validCode)!=EOF)
+        while(fscanf(whitelist,"%s",&validCode)!=EOF)
         {
-                printf("tried:%d correct:%d\n",code,validCode);
-                if(code==validCode)
+                printf("tried:%s correct:%s\n",code,validCode);
+                if(strcmp(code, validCode) == 0)
                 {
                         x = write(door, "12345\r", 6);
                         if(x<0)
@@ -201,7 +201,7 @@ int main()
         {
                 code = readSerial();
 
-                if(openDoor(atoi(code))==0)
+                if(openDoor(code)==0)
                         sleep(4); /*sleep for 4 seconds on successful code, not really necessary*/
                 free(code);
         }
