@@ -36,6 +36,11 @@ void setup() {
   Serial.begin(115200);
   
   // Wiegnad RFID Reader Interface Setup
+  pinMode(READER_DATA0_PIN, INPUT)
+  pinMode(READER_DATA1_PIN, INPUT)
+  digitalWrite(READER_DATA0_PIN, HIGH)
+  digitalWrite(READER_DATA1_PIN, HIGH)
+  
   // put the reader input variables to zero
   reader1 = 0;
   reader1Count = 0;
