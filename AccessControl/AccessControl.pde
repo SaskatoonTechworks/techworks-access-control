@@ -18,7 +18,6 @@
 #define LED_OUT_PIN         13
 
 #define ACCESSGRANTED_CODE  "12345"
-#define ACCESSDENIED_CODE   "54321"
 
 // Variables
 volatile uint64_t reader1 = 0;
@@ -45,11 +44,15 @@ void setup() {
   reader1 = 0;
   reader1Count = 0;
   
+  // Make RFID reader pins inputs with pull-ups
+  pinMode(READER_DATA0_PIN, INPUT);
+  digitalWrite(READER_DATA0_PIN, HIGH);
+  pinMode(READER_DATA1_PIN, INPUT);
+  digitalWrite(READER_DATA1_PIN, HIGH);
+  
   // Attach pin change interrupt service routines from the Wiegand RFID readers and make them inputs
   attachInterrupt(READER_DATA0_INT, reader1Zero, FALLING);//DATA0 to pin 2
   attachInterrupt(READER_DATA1_INT, reader1One, FALLING); //DATA1 to pin 3
-  
-  delay(10);
   
   pinMode(LED_OUT_PIN, OUTPUT);
   digitalWrite(LED_OUT_PIN, LOW);
@@ -57,10 +60,14 @@ void setup() {
   delay(10);
 }
 
-
 // Main Run Loop
 void loop() {
   char accessCode[MAX_CODE_LEN];
+  
+  // Make sure codes are cleared
+  reader1 = 0;
+  reader1Count = 0;
+  memset(accessCode, 0, MAX_CODE_LEN);
   
   Serial.println(":Waiting for code...");
   waitForWiegandAccessCode(accessCode);
@@ -80,10 +87,6 @@ void loop() {
     
     // Delay 500 ms before attempting to read next access code.. for debounce.
     delay(500);
-    
-    // clear out reader bits
-    reader1 = 0;
-    reader1Count = 0;
   }
   else
   {
@@ -139,8 +142,8 @@ void waitForWiegandAccessCode(char accessCode[])
   Serial.print(":codeLow:");
   Serial.println(codeLow, HEX);
   
-  ultoa(codeLow, accessCode, 10);
-  //sprintf(accessCode, "%08X%08X", codeHigh, codeLow);
+  //ultoa(codeLow, accessCode, 10);
+  sprintf(accessCode, "%08X%08X", codeHigh, codeLow);
   
   reader1 = 0;
   reader1Count = 0;
@@ -174,7 +177,7 @@ boolean accessCodeIsValid(char accessCode[])
   // replace CR with null terminator
   commandBuffer[charIdx-1] = 0;
   
-  // Sheeva plug will have to send the UNLOCK_CODE if RFID code is authorized.
+  // Sheeva plug will have to send the ACCESSGRANTED_CODE if RFID code is authorized.
   if (strncmp(commandBuffer, ACCESSGRANTED_CODE, MAX_CODE_LEN) == 0)
   {
     return true;
