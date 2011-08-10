@@ -15,28 +15,79 @@
 #define MAX_CODE_LEN 15 /*completely arbitrary*/
 #define WHITELIST_FILE "/home/kaldonis/accesscontrol/whitelist.txt" /*terrible location for this file*/
 
-#define DOOR_DEVICE "/dev/ttyUSB0" /*this will need to be USB0 if we switch back to seeeduino*/
-#define DOOR_MODE "0666" /*can probably be tighter than this, only needs to be read and written to by daemon*/
+#define DOOR_DEVICE "/dev/ttyACM"
 
 #define LOG_FILE "/var/log/access.log"
 
-int door;
+int dd;
+int deviceNumber;
+
+char device[12];
 char *code;
+
+int connectToDevice()
+{
+	deviceNumber = 0;
+	do
+	{
+		if(deviceNumber==100)
+		{
+			sleep(1);
+			deviceNumber = 0;	
+		}
+		sprintf(device,"%s%d",DOOR_DEVICE,deviceNumber);		
+		printf("Trying to open device at %s\n",device);
+		dd = open(device, O_RDWR | O_NOCTTY);
+		deviceNumber++;
+	} while(dd==-1);
+
+	if(dd==-1)
+		return 1;
+	else
+		return 0;
+}
 
 char *readSerial()
 {
-        int res;
+        int rv,res = 0;
+	fd_set set;
         char *buffer = (char*) malloc(255*sizeof(char));
+	struct timeval timeout;
 
         do
         {
+		timeout.tv_sec = 1; /*one second timeout waiting for data*/
+		timeout.tv_usec = 0;
                 memset(buffer,0,255);
-                res = read(door,buffer,255);
-        } while (buffer[0]==':' || res < 5); /*silly hack to get around read being stupid - Jeremy*/
+		FD_ZERO(&set);
+		FD_SET(dd,&set);
+        	rv = select(dd+1,&set,NULL,NULL,&timeout);
+		//printf("rv:%d\n",rv);
+		if(rv==-1)/*error, reconnect to device*/
+		{
+			connectToDevice();
+			continue;
+		}
+		else if(rv==0)/*timeout, keep waiting*/
+		{
+			printf("still waiting...\n");
+			continue;
+		}
+		else
+		{
+	                res = read(dd,buffer,255);
+			printf("Read: (%s)\n",buffer);
+			if(buffer[0]==0) /*read a null string, means device disconnected or something*/
+			{
+				connectToDevice();
+				continue;
+			}
+		}
+        } while (buffer[0]==':' || res < 2); /*silly hack to get around read being stupid - Jeremy*/
 
         buffer[res-1] = 0;
 
-        printf("read: %s\n",buffer);
+        //printf("read: %s\n",buffer);
 
         return buffer;
 }
@@ -47,6 +98,7 @@ void daemonize()
         char str[10];
 
         if(getppid()==1) return;
+	i=0;
         i=fork();
         if (i<0) exit(1); /* fork error */
         if (i>0) exit(0); /* parent exits */
@@ -101,10 +153,10 @@ int openDoor(char* code)
 
         while(fscanf(whitelist,"%s",&validCode)!=EOF)
         {
-                printf("tried:%s correct:%s\n",code,validCode);
+                //printf("tried:%s correct:%s\n",code,validCode);
                 if(strcmp(code, validCode) == 0)
                 {
-                        x = write(door, "12345\r", 6);
+                        x = write(dd, "12345\r", 6);
                         if(x<0)
                         {
                                 log_access("GOOD CODE, WRITE FAIL\n");
@@ -121,8 +173,8 @@ int openDoor(char* code)
                 }
         }
 
-        printf("Code failed\n");
-        x = write(door,"54321\r",6);
+        //printf("Code failed\n");
+        x = write(dd,"54321\r",6);
         if(x<0)
                 log_access("INVALID CODE, WRITE FAIL\n");
         else
@@ -133,42 +185,22 @@ int openDoor(char* code)
         return 1;
 }
 
-/*this may be completely unnecessary now that this is running as a daemon - Jeremy*/
-void initializePermissions() 
-{
-        int dm = strtol(DOOR_MODE,0,8);
-
-        if(chmod(DOOR_DEVICE, dm) < 0)
-        {
-                log_access("Error setting door device permissions. Are you root?\n");
-                exit(1);
-        }
-}
-
 int main()
 {
         struct input_event ev;
         struct termios options;
         int x;
 
-        initializePermissions();
-
         daemonize();
 
-        door = open(DOOR_DEVICE, O_RDWR | O_NOCTTY | O_NDELAY);
-
-        if(door==-1)
-        {
-                printf("Failed to open serial port\n");
-                exit(1);
-        }
+	connectToDevice();
         sleep(3);
 
         /* set serial options, not sure what some of this does
          * I just copied it from somewhere -Jeremy
          */
 
-        tcgetattr(door,&options);
+        tcgetattr(dd,&options);
         bzero(&options,sizeof(options));
 
         options.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
@@ -181,7 +213,8 @@ int main()
         options.c_cc[VERASE]   = 0;     /* del */
         options.c_cc[VKILL]    = 0;     /* @ */
         options.c_cc[VEOF]     = 4;     /* Ctrl-d */
-        options.c_cc[VTIME]    = 0;     /* inter-character timer unused */
+        options.c_cc[VTIME]    = 50;     /* inter-character timer unused 
+*/
         options.c_cc[VMIN]     = 0;
         options.c_cc[VSWTC]    = 0;     /* '\0' */
         options.c_cc[VSTART]   = 0;     /* Ctrl-q */
@@ -194,15 +227,15 @@ int main()
         options.c_cc[VLNEXT]   = 0;     /* Ctrl-v */
         options.c_cc[VEOL2]    = 0;     /* '\0' */
 
-        tcflush(door,TCIFLUSH);
-        tcsetattr(door,TCSANOW,&options);
+        tcflush(dd,TCIFLUSH);
+        tcsetattr(dd,TCSANOW,&options);
 
         while(1)
         {
                 code = readSerial();
 
                 if(openDoor(code)==0)
-                        sleep(4); /*sleep for 4 seconds on successful code, not really necessary*/
+                        sleep(1); /*sleep for 4 seconds on successful code, not really necessary*/
                 free(code);
         }
 
