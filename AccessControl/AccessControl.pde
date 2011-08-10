@@ -111,6 +111,7 @@ void waitForWiegandAccessCode(char accessCode[])
   unsigned long startTime;
   unsigned long codeLow;
   unsigned long codeHigh;
+  unsigned int code[4];    // index 0 is MSB
   
   // wait for first bit
   while (reader1Count == 0);
@@ -133,13 +134,18 @@ void waitForWiegandAccessCode(char accessCode[])
   codeLow = (reader1 & 0x00000000FFFFFFFF);
   codeHigh = (reader1 >> 32);
   
+  code[0] = codeHigh >> 16;
+  code[1] = codeHigh & 0x0000FFFF;
+  code[2] = codeLow >> 16;
+  code[3] = codeLow & 0x0000FFFF;
+  
   Serial.print(":codeHigh:");
   Serial.println(codeHigh, HEX);
   Serial.print(":codeLow:");
   Serial.println(codeLow, HEX);
   
   //ultoa(codeLow, accessCode, 10);
-  sprintf(accessCode, "%08X%08X", codeHigh, codeLow);
+  sprintf(accessCode, "%04X%04X%04X%04X", code[0], code[1], code[2], code[3]);
   
   reader1 = 0;
   reader1Count = 0;
