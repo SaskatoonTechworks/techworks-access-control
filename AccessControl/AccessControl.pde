@@ -14,8 +14,14 @@
 #define READER_DATA1_PIN    3
 #define READ_TIMEOUT_MS     1000
 #define MAX_CODE_LEN        32
+#define ENC28J60_CS         8
+#define SDCARD_CS           10
 
-#define LED_OUT_PIN         13
+#ifdef NANODE
+  #define LED_OUT_PIN         6
+#else
+  #define LED_OUT_PIN         13
+#endif
 
 #define ACCESSGRANTED_CODE  "12345"
 

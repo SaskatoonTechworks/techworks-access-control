@@ -6,7 +6,6 @@
 #include <NanodeMAC.h>
 
 #define SDCARD_CS           10
-#define NULL 0
 
 // please modify the following two lines. mac and ip have to be unique
 // in your local area network. You can not have the same numbers in
@@ -15,7 +14,8 @@ static uint8_t mymac[6] = {
   0x00,0x04,0xA3,0x2C,0x0F,0x93}; 
   
 static uint8_t myip[4] = {
-  10,10,220,184};
+  192,168,0,222};
+//  10,10,220,184};
 
 #define MYWWWPORT 80
 #define BUFFER_SIZE 550
@@ -35,7 +35,7 @@ uint16_t http200ok(void)
   return(es.ES_fill_tcp_data_p(buf,0,PSTR("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nPragma: no-cache\r\n\r\n")));
 }
 
-uint16_t addResponse(uint16_t plen, const char *response)
+uint16_t addResponse(uint16_t plen, PROGMEM const char *response)
 {
    return es.ES_fill_tcp_data_p(buf,plen,response);
 }
@@ -124,13 +124,15 @@ void setup(){
 
   Serial.begin(115200);
   
-  Serial.println("Initializing ENC28J60");
+  Serial.println("Initializing SPI");
   // Initialise SPI interface
   es.ES_enc28j60SpiInit();
 
+  Serial.println("Initializing ENC28J60");
   // initialize enc28j60
   es.ES_enc28j60Init(mymac,8);
 
+  Serial.println("Initializing Network Stack");
   // init the ethernet/ip layer:
   es.ES_init_ip_arp_udp_tcp(mymac,myip, MYWWWPORT);
   
@@ -258,13 +260,13 @@ void processWebRequests(){
     }
     // tcp port 80 begin
     parseWebRequest((char *)&buf[dat_p], requestMethod, requestedResource, requestParams);
-    //Serial.print(":: ");
-    //Serial.print(requestMethod);
-    //Serial.print(" | ");
-    //Serial.print(requestedResource);
-    //Serial.print(" | ");
-    //Serial.print(requestParams);
-    //Serial.print(" | ");
+    Serial.print(":: ");
+    Serial.print(requestMethod);
+    Serial.print(" | ");
+    Serial.print(requestedResource);
+    Serial.print(" | ");
+    Serial.print(requestParams);
+    Serial.print(" | ");
     
     if (strcmp("GET",requestMethod)!=0){
       // head, post and other methods:
