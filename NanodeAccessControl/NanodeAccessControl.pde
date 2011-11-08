@@ -202,8 +202,6 @@ void parseWebRequest(char *requestString, char *method, char *resource, char *pa
     // copy data into method
     methodLen = resourceStart - requestString;
 
-    Serial.println("resourceStart:");
-    Serial.println(resourceStart);
     Serial.println("methodLen:");
     Serial.println(methodLen);
     
@@ -212,17 +210,18 @@ void parseWebRequest(char *requestString, char *method, char *resource, char *pa
     
     Serial.println("method:");
     Serial.println(method);
-    
+
+    resourceStart++;    
     // find questionmark param delimiter
     paramStart = (char*)memchr(resourceStart, '?', 50);
     if (paramStart == NULL)
     {
+      Serial.println("noparams");
       // No params. Copy to resource.
       tailStart = (char*)memchr(resourceStart, ' ', 50);
       resourceLen = tailStart - resourceStart;
       memcpy(resource, resourceStart, resourceLen);
       resource[resourceLen] = '\0';
-      
     }
     else
     {
@@ -237,6 +236,8 @@ void parseWebRequest(char *requestString, char *method, char *resource, char *pa
         paramLen = tailStart - paramStart;
         memcpy(params, paramStart, paramLen);
         params[paramLen] = '\0';
+        Serial.println("params:");
+        Serial.println(params);
       }
     }
   }
