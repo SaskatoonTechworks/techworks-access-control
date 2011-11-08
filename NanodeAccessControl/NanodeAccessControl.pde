@@ -15,7 +15,8 @@ static uint8_t mymac[6] = {
   0x00,0x04,0xA3,0x2C,0x0F,0x93}; 
   
 static uint8_t myip[4] = {
-  10,10,220,184};
+    192,168,0,184};
+//  10,10,220,184};
 
 #define MYWWWPORT 80
 #define BUFFER_SIZE 550
@@ -124,13 +125,15 @@ void setup(){
 
   Serial.begin(115200);
   
-  Serial.println("Initializing ENC28J60");
+  Serial.println("Initializing SPI");
   // Initialise SPI interface
   es.ES_enc28j60SpiInit();
 
+  Serial.println("Initializing ENC28J60");
   // initialize enc28j60
   es.ES_enc28j60Init(mymac,8);
 
+  Serial.println("Initializing TCP Stack");
   // init the ethernet/ip layer:
   es.ES_init_ip_arp_udp_tcp(mymac,myip, MYWWWPORT);
   
@@ -200,8 +203,6 @@ void parseWebRequest(char *requestString, char *method, char *resource, char *pa
     // copy data into method
     methodLen = resourceStart - requestString;
 
-    Serial.println("resourceStart:");
-    Serial.println(resourceStart);
     Serial.println("methodLen:");
     Serial.println(methodLen);
     
@@ -210,17 +211,18 @@ void parseWebRequest(char *requestString, char *method, char *resource, char *pa
     
     Serial.println("method:");
     Serial.println(method);
-    
+
+    resourceStart++;    
     // find questionmark param delimiter
     paramStart = (char*)memchr(resourceStart, '?', 50);
     if (paramStart == NULL)
     {
+      Serial.println("noparams");
       // No params. Copy to resource.
       tailStart = (char*)memchr(resourceStart, ' ', 50);
       resourceLen = tailStart - resourceStart;
       memcpy(resource, resourceStart, resourceLen);
       resource[resourceLen] = '\0';
-      
     }
     else
     {
@@ -235,6 +237,8 @@ void parseWebRequest(char *requestString, char *method, char *resource, char *pa
         paramLen = tailStart - paramStart;
         memcpy(params, paramStart, paramLen);
         params[paramLen] = '\0';
+        Serial.println("params:");
+        Serial.println(params);
       }
     }
   }
@@ -258,13 +262,13 @@ void processWebRequests(){
     }
     // tcp port 80 begin
     parseWebRequest((char *)&buf[dat_p], requestMethod, requestedResource, requestParams);
-    //Serial.print(":: ");
-    //Serial.print(requestMethod);
-    //Serial.print(" | ");
-    //Serial.print(requestedResource);
-    //Serial.print(" | ");
-    //Serial.print(requestParams);
-    //Serial.print(" | ");
+    Serial.print("::");
+    Serial.print(requestMethod);
+    Serial.print("|");
+    Serial.print(requestedResource);
+    Serial.print("|");
+    Serial.print(requestParams);
+    Serial.print("|");
     
     if (strcmp("GET",requestMethod)!=0){
       // head, post and other methods:
